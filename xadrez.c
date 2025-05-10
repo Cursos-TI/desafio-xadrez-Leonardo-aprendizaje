@@ -2,25 +2,21 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#define TAM 8
-
-// Função para limpar a tela (multiplataforma)
-void limparTela() {
 #ifdef _WIN32
-    system("cls");
+#include <windows.h> // Para Windows
+#define PAUSE system("pause")
+#define CLEAR system("cls")
 #else
-    system("clear");
+#include <unistd.h>  // Para Unix
+#define Sleep(x) usleep((x)*1000)
+#define PAUSE getchar()
+#define CLEAR system("clear")
 #endif
-}
 
-// Função para pausar até o usuário apertar Enter
-void pausarComEnter() {
-    printf("\nPressione ENTER para continuar...\n");
-    //while (getchar() != '\n'); // Limpa o buffer, EU PREFERI DEIXAR SEM O GETCHAR, POIS ESTAVA TENDO QUE APERTAR 2 VEZES O ENTER.
-    getchar(); // Espera o Enter real
-}
+#define TAM 8
+#define DELAY 500
 
-// Imprimir o tabuleiro
+// Função para imprimir o tabuleiro
 void imprimirTabuleiro(char tabuleiro[TAM][TAM]) {
     printf("\nMovimento das Peças no Tabuleiro:\n\n");
     for (int i = 0; i < TAM; i++) {
@@ -33,72 +29,93 @@ void imprimirTabuleiro(char tabuleiro[TAM][TAM]) {
     printf("  A B C D E F G H\n");
 }
 
-// Movimento da Torre
-void movimentoTorre(char tabuleiro[TAM][TAM], int linha, int coluna, int movimento) {
-    for (int i = 1; i <= movimento; i++) {
-        tabuleiro[linha][coluna] = '*';
-        coluna++;
-        tabuleiro[linha][coluna] = 'T';
-        limparTela();
-        imprimirTabuleiro(tabuleiro);
-        pausarComEnter();
+// Limpa o tabuleiro (preenche com '.')
+void limparTabuleiro(char tabuleiro[TAM][TAM]) {
+    for (int i = 0; i < TAM; i++)
+        for (int j = 0; j < TAM; j++)
+            tabuleiro[i][j] = '.';
+}
+
+// Movimento recursivo da torre (direita)
+void moverTorre(char tabuleiro[TAM][TAM], int linha, int coluna, int passos) {
+    if (passos == 0 || coluna + 1 >= TAM) return;
+
+    tabuleiro[linha][coluna] = '*';
+    coluna++;
+    tabuleiro[linha][coluna] = 'T';
+
+    CLEAR;
+    imprimirTabuleiro(tabuleiro);
+    printf("Direita\n\n");
+    Sleep(DELAY);
+
+    moverTorre(tabuleiro, linha, coluna, passos - 1);
+}
+
+// Movimento recursivo do bispo com loops aninhados (diagonal cima direita)
+void moverBispo(char tabuleiro[TAM][TAM], int linha, int coluna, int passos) {
+    if (passos == 0 || linha - 1 < 0 || coluna + 1 >= TAM) return;
+
+    for (int i = linha - 1; i >= linha - 1; i--) {
+        for (int j = coluna + 1; j <= coluna + 1; j++) {
+            tabuleiro[linha][coluna] = '*';
+            tabuleiro[i][j] = 'B';
+
+            CLEAR;
+            imprimirTabuleiro(tabuleiro);
+            printf("Diagonal Cima Direita\n\n");
+            Sleep(DELAY);
+
+            moverBispo(tabuleiro, i, j, passos - 1);
+        }
     }
 }
 
-// Movimento do Bispo
-void movimentoBispo(char tabuleiro[TAM][TAM], int linha, int coluna, int movimento) {
-    for (int i = 1; i <= movimento; i++) {
-        tabuleiro[linha][coluna] = '*';
-        linha++;
-        coluna++;
-        tabuleiro[linha][coluna] = 'B';
-        limparTela();
-        imprimirTabuleiro(tabuleiro);
-        pausarComEnter();
-    }
+// Movimento recursivo da rainha (baixo esquerda)
+void moverRainha(char tabuleiro[TAM][TAM], int linha, int coluna, int passos) {
+    if (passos == 0 || linha + 1 >= TAM || coluna - 1 < 0) return;
+
+    tabuleiro[linha][coluna] = '*';
+    linha++;
+    coluna--;
+    tabuleiro[linha][coluna] = 'R';
+
+    CLEAR;
+    imprimirTabuleiro(tabuleiro);
+    printf("Diagonal Baixo Esquerda\n\n");
+    Sleep(DELAY);
+
+    moverRainha(tabuleiro, linha, coluna, passos - 1);
 }
 
-// Movimento da Rainha
-void movimentoRainha(char tabuleiro[TAM][TAM], int linha, int coluna, int movimento) {
-    for (int i = 1; i <= movimento; i++) {
-        tabuleiro[linha][coluna] = '*';
-        linha++;
-        coluna--;
-        tabuleiro[linha][coluna] = 'R';
-        limparTela();
-        imprimirTabuleiro(tabuleiro);
-        pausarComEnter();
-    }
-}
+// Movimento do cavalo com loops aninhados e múltiplas condições
+void moverCavalo(char tabuleiro[TAM][TAM], int linha, int coluna) {
+    for (int i = linha - 2; i >= 0; i--) {
+        for (int j = coluna + 1; j < TAM; j++) {
+            if (i < 0 || j >= TAM) break;
 
-// Movimento do Cavalo
-void movimentoCavalo(char tabuleiro[TAM][TAM], int linha, int coluna, int movimento) {
-    for (int i = 1; i <= movimento; i++) {
-        tabuleiro[linha][coluna] = '*';
-        linha += 2;
-        coluna -= 1;
-        tabuleiro[linha][coluna] = 'C';
-        limparTela();
-        imprimirTabuleiro(tabuleiro);
-        pausarComEnter();
+            tabuleiro[linha][coluna] = '*';
+            tabuleiro[i][j] = 'C';
+
+            CLEAR;
+            imprimirTabuleiro(tabuleiro);
+            printf("Cima\nDireita\n\n");
+            Sleep(DELAY);
+
+            return;
+        }
     }
 }
 
 int main() {
     char tabuleiro[TAM][TAM];
     char escolha;
-    int linha = 0;
-    int coluna = 0;
     int continuar = 1;
-
-    // Inicializa o tabuleiro
-    for (int i = 0; i < TAM; i++)
-        for (int j = 0; j < TAM; j++)
-            tabuleiro[i][j] = '.';
-
-    tabuleiro[linha][coluna] = 'T';
+    const int linhaInicial = 7, colunaInicial = 0; // Posição inicial (linha 8, coluna A)
 
     while (continuar) {
+        limparTabuleiro(tabuleiro);
+
         printf("Escolha a peça que deseja mover (ou 'S' para sair):\n");
         printf("T: Torre, B: Bispo, R: Rainha, C: Cavalo\n");
         printf("Digite a letra da peça: ");
@@ -107,48 +124,44 @@ int main() {
 
         if (escolha == 'S') {
             printf("Saindo...\n");
-            continuar = 0;
-        } else {
-            // Limpa buffer antes de usar getchar
-            getchar();
-
-            switch (escolha) {
-                case 'T':
-                    tabuleiro[linha][coluna] = 'T';
-                    imprimirTabuleiro(tabuleiro);
-                    pausarComEnter();
-                    limparTela();
-                    movimentoTorre(tabuleiro, linha, coluna, 5);
-                    break;
-
-                case 'B':
-                    tabuleiro[linha][coluna] = 'B';
-                    imprimirTabuleiro(tabuleiro);
-                    pausarComEnter();
-                    limparTela();
-                    movimentoBispo(tabuleiro, linha, coluna, 5);
-                    break;
-
-                case 'R':
-                    tabuleiro[linha][coluna] = 'R';
-                    imprimirTabuleiro(tabuleiro);
-                    pausarComEnter();
-                    limparTela();
-                    movimentoRainha(tabuleiro, linha, coluna, 5);
-                    break;
-
-                case 'C':
-                    tabuleiro[linha][coluna] = 'C';
-                    imprimirTabuleiro(tabuleiro);
-                    pausarComEnter();
-                    limparTela();
-                    movimentoCavalo(tabuleiro, linha, coluna, 5);
-                    break;
-
-                default:
-                    printf("Opção inválida! Tente novamente.\n");
-            }
+            break;
         }
+
+        switch (escolha) {
+            case 'T':
+                tabuleiro[linhaInicial][colunaInicial] = 'T';
+                imprimirTabuleiro(tabuleiro);
+                Sleep(DELAY);
+                moverTorre(tabuleiro, linhaInicial, colunaInicial, 5);
+                break;
+
+            case 'B':
+                tabuleiro[linhaInicial][colunaInicial] = 'B';
+                imprimirTabuleiro(tabuleiro);
+                Sleep(DELAY);
+                moverBispo(tabuleiro, linhaInicial, colunaInicial, 5);
+                break;
+
+            case 'R':
+                tabuleiro[linhaInicial][colunaInicial] = 'R';
+                imprimirTabuleiro(tabuleiro);
+                Sleep(DELAY);
+                moverRainha(tabuleiro, linhaInicial, colunaInicial, 5);
+                break;
+
+            case 'C':
+                tabuleiro[linhaInicial][colunaInicial] = 'C';
+                imprimirTabuleiro(tabuleiro);
+                Sleep(DELAY);
+                moverCavalo(tabuleiro, linhaInicial, colunaInicial);
+                break;
+
+            default:
+                printf("Opção inválida!\n");
+        }
+
+        printf("\nPressione ENTER para continuar...\n");
+        getchar(); getchar(); // Aguarda ENTER
     }
 
     return 0;
